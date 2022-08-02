@@ -59,12 +59,10 @@ def check_output_retry(*args, **kwargs):
         try:
             return subprocess.check_output(*args, **kwargs)
         except subprocess.CalledProcessError as e:
-            if run <= max_ and e.returncode == 127:
-                time.sleep(0.1 * run)
-                run += 1
-                continue
-            else:
+            if run > max_ or e.returncode != 127:
                 raise
+            time.sleep(0.1 * run)
+            run += 1
 
 
 def get_cache_key(pkgbuild_path: str) -> str:
@@ -152,7 +150,7 @@ def get_srcinfo_for_pkgbuild(args: Tuple[str, str]) -> Optional[CacheTuple]:
 
         meta = {"repo": repo, "path": relpath, "date": date, "srcinfo": srcinfos}
     except subprocess.CalledProcessError as e:
-        print("ERROR: %s %s" % (pkgbuild_path, e.output.splitlines()))
+        print(f"ERROR: {pkgbuild_path} {e.output.splitlines()}")
         return None
 
     return (key, meta)
@@ -160,14 +158,13 @@ def get_srcinfo_for_pkgbuild(args: Tuple[str, str]) -> Optional[CacheTuple]:
 
 def iter_pkgbuild_paths(repo_path: str) -> Iterator[str]:
     repo_path = os.path.abspath(repo_path)
-    print("Searching for PKGBUILD files in %s" % repo_path)
+    print(f"Searching for PKGBUILD files in {repo_path}")
     for base, dirs, files in os.walk(repo_path):
         for f in files:
             if f == "PKGBUILD":
                 # in case we find a PKGBUILD, don't go deeper
                 del dirs[:]
-                path = os.path.join(base, f)
-                yield path
+                yield os.path.join(base, f)
 
 
 def get_srcinfo_from_cache(args: Tuple[str, Cache]) -> Tuple[str, Optional[CacheTuple]]:
@@ -191,8 +188,7 @@ def iter_srcinfo(repo_path: str, mode: str, cache: Cache) -> Iterator[Optional[C
                 to_parse.append((pkgbuild_path, mode))
 
         print("Parsing PKGBUILD files...")
-        for srcinfo in executor.map(get_srcinfo_for_pkgbuild, to_parse):
-            yield srcinfo
+        yield from executor.map(get_srcinfo_for_pkgbuild, to_parse)
 
 
 def main(argv: List[str]) -> Optional[Union[int, str]]:

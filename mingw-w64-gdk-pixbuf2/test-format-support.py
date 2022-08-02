@@ -24,7 +24,7 @@ def main():
             if format_ == f.get_name():
                 break
         else:
-            print("%s not found!" % format_)
+            print(f"{format_} not found!")
 
         # XXX: for some reason wmf gets detected as emf now
         if format_ == "emf":
@@ -115,7 +115,7 @@ def main():
 
     for f in GdkPixbuf.Pixbuf.get_formats():
         if f.get_name() not in formats_tested:
-            print("%s not tested!" % f.get_name())
+            print(f"{f.get_name()} not tested!")
 
     print("EVERYTHING IS OK!")
 

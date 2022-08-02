@@ -93,25 +93,24 @@ def install_package(pkg: typing.Union[typing.List[str], Path]) -> typing.Generat
             "-cns",
             get_pkg_name(pkg),
         ]
+    elif len(pkg) == 0:
+        command = uninstall_command = ['true']
     else:
-        if len(pkg) != 0:
-            command = [
-                "pacman",
-                "--sync",
-                "--refresh",
-                "--noconfirm",
-                *pkg,
-            ]
-            uninstall_command = [
-                "pacman",
-                "--noprogressbar",
-                "--remove",
-                "--noconfirm",
-                "-cns",
-                *pkg,
-            ]
-        else:
-            command = uninstall_command = ['true']
+        command = [
+            "pacman",
+            "--sync",
+            "--refresh",
+            "--noconfirm",
+            *pkg,
+        ]
+        uninstall_command = [
+            "pacman",
+            "--noprogressbar",
+            "--remove",
+            "--noconfirm",
+            "-cns",
+            *pkg,
+        ]
     with gha_group(f"Installing: {pkg}"):
         ret = subprocess.run(command)
     if ret.returncode != 0:
@@ -125,7 +124,7 @@ def install_package(pkg: typing.Union[typing.List[str], Path]) -> typing.Generat
 
 
 def get_rdeps(pkg: str) -> typing.List[str]:
-    with gha_group(f"Finding Reverse Dependency"):
+    with gha_group("Finding Reverse Dependency"):
         p = subprocess.run(
             ["pacman", "-Sii", pkg],
             capture_output=True,
@@ -142,14 +141,12 @@ def get_rdeps(pkg: str) -> typing.List[str]:
         logger.info("Pkgname: %s", pkg)
         logger.info("Installing Package.")
         ret = p.stdout
-        rdeps_re = RDEPS_REGEX.search(ret)
-        if rdeps_re:
-            pkgs_str = rdeps_re.group("rdeps")
-            pkgs = [i.strip() for i in pkgs_str.split() if i != "None"]
-            logger.info("Rdeps parsed: %s", pkgs)
-            return pkgs
-        else:
+        if not (rdeps_re := RDEPS_REGEX.search(ret)):
             raise ValueError(f"Unable to parse Pacman output: {ret}")
+        pkgs_str = rdeps_re.group("rdeps")
+        pkgs = [i.strip() for i in pkgs_str.split() if i != "None"]
+        logger.info("Rdeps parsed: %s", pkgs)
+        return pkgs
 
 
 def run_pip_check(pkg: str) -> None:
@@ -238,8 +235,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     if args.run:
-        res = check_whether_we_should_run()
-        if res:
+        if res := check_whether_we_should_run():
             print("::set-output name=run::true")
         else:
             print("::set-output name=run::false")

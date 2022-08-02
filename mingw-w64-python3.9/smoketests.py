@@ -25,13 +25,11 @@ and to test msys2 related modifications like for path handling.
 Feel free to extend.
 """
 
+
 import os
 import unittest
 
-if "MSYSTEM" in os.environ:
-    SEP = "/"
-else:
-    SEP = "\\"
+SEP = "/" if "MSYSTEM" in os.environ else "\\"
 
 
 class Tests(unittest.TestCase):
@@ -93,7 +91,7 @@ class Tests(unittest.TestCase):
         from concurrent.futures import ThreadPoolExecutor
 
         with ThreadPoolExecutor(1) as pool:
-            for res in pool.map(lambda *x: None, range(10000)):
+            for _ in pool.map(lambda *x: None, range(10000)):
                 pass
 
     def test_sysconfig(self):

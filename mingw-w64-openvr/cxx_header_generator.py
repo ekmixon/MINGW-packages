@@ -43,9 +43,9 @@ for match in fullClassPattern.finditer(header):
     fullClass = match.group(0)
     indent = match.group(1)
     className = match.group(2)
-    
+
     newClass = fullClass
-    
+
     declarations = []
     for function in virtualPattern.finditer(fullClass):
         returnType = function.group(2)
@@ -54,27 +54,44 @@ for match in fullClassPattern.finditer(header):
         paramsNoDefault = re.sub(optionalParamPattern, '', params)
         for macro in annoyingMacros:
             paramsNoDefault = re.sub(macro + r'\(.*?\)', '', paramsNoDefault)
-        
+
         args = []
         paramTokens = list(shlex.shlex(io.StringIO(paramsNoDefault)))
         for i, token in enumerate(paramTokens):
             if token == ',' or (token == ')' and paramTokens[i - 1] not in ['(', 'void']):
                 args.append(paramTokens[i - 1])
-        
-        declaration = indent + '\t{}(__stdcall *{}){};'.format(returnType, functionName, paramsNoDefault)
+
+        declaration = (
+            indent
+            + f'\t{returnType}(__stdcall *{functionName}){paramsNoDefault};'
+        )
+
         definition = indent + '\t' + returnType + functionName + params + ' { '
         if returnType.strip() != 'void':
-            definition = definition + 'return '
-        definition = definition + '_table.' + functionName + '(' + ', '.join(args) + '); }'
-        
+            definition = f'{definition}return '
+        definition = f'{definition}_table.{functionName}(' + ', '.join(args) + '); }'
+
         declarations.append(declaration)
         newClass = newClass.replace(function.group(0), definition)
-        
-    tableName = 'VR_{}_FnTable'.format(className)
-    table = indent + 'struct ' + tableName + '\n' + indent + '{\n' + '\n'.join(declarations) + '\n' + indent + '};\n\n'
-    
-    newClass = newClass.replace('public:', '\t{} _table;\n{}public:'.format(tableName, indent))
-    
+
+    tableName = f'VR_{className}_FnTable'
+    table = (
+        f'{indent}struct {tableName}'
+        + '\n'
+        + indent
+        + '{\n'
+        + '\n'.join(declarations)
+        + '\n'
+        + indent
+        + '};\n\n'
+    )
+
+
+    newClass = newClass.replace(
+        'public:', f'\t{tableName} _table;\n{indent}public:'
+    )
+
+
     newHeader = newHeader.replace(fullClass, table + newClass)
 
 open(cppHeader, 'w', newline='\n').write(newHeader)

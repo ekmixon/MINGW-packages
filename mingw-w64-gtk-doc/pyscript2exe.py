@@ -3,6 +3,7 @@ Creates an exe launcher for Python scripts for the executing interpreter.
 foobar.py -> foobar.exe + foobar-script.py
 """
 
+
 import sys
 import re
 import os
@@ -14,6 +15,6 @@ with open(path, "rb") as f:
 with open(path, "wb") as f:
     f.write(re.sub(b"^#![^\n\r]*", b'', data))
 root, ext = os.path.splitext(path)
-with open(root + ".exe", "wb") as f:
+with open(f"{root}.exe", "wb") as f:
     f.write(get_win_launcher("cli"))
-os.rename(path, root + "-script.py")
+os.rename(path, f"{root}-script.py")
